@@ -114,18 +114,18 @@ for i=1:N
  
  for h=1:(Nh-1)
   
-  if isnan(matrix(i,h))==1
+  if isnan(cell2mat(matrix(i,h)))==1
    fprintf(fid,'%s\t',trNaN);
   else
-   fprintf(fid, [fstr,'\t'],matrix(i,h));
+   fprintf(fid, [fstr,'\t'],cell2mat(matrix(i,h)));
   end
   
  end
  
- if isnan(matrix(i,h+1))==1
+ if isnan(cell2mat(matrix(i,h+1)))==1
   fprintf(fid,['%s',endL],trNaN);
  else
-  fprintf(fid,[fstr,endL],matrix(i,h+1));
+  fprintf(fid,[fstr,endL],cell2mat(matrix(i,h+1)));
  end
  
 end

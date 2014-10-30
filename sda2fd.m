@@ -1,4 +1,4 @@
-%% Fred's Toolbox: Informed conversion of DFA Slope to Fractal Dimension
+%% Fred's Toolbox: Informed conversion of SDA Slope to Fractal Dimension
 %
 % The conversion formula was obtained by a nonlinear least squares fit
 % (Robust: Bisquare, Algorithm: Levenberg-Marquardt) of a hyperbolic tangent
