@@ -7,8 +7,7 @@
 %
 %
 % Fred Hasselman - Februari 2011
-% Contact: me@fredhasselman.com
-
+% Contact: me#fredhasselman#com | AT DOT
 
 function grab(name,closeit)
     
@@ -34,7 +33,7 @@ function grab(name,closeit)
         if closeit==1
             close;
         end
-        disp(['Current figure saved as: ' fname]);       
+        disp(['Current figure saved as: ',pwd,'/',fname]);       
     end
     
 end
