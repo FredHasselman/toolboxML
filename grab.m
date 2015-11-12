@@ -26,9 +26,9 @@ function grab(name,closeit)
         disp('No figure to print?')
     else
         shg;
-        set(gcf, 'PaperPositionMode', 'auto')
-        %print('-deps2','-r900',fname)
-        print('-depsc2','-r900', '-painters',fname)
+        %set(gcf, 'PaperPositionMode', 'auto')
+        print('-deps2','-r900',fname)
+        %print('-depsc2','-r900', '-painters',fname)
         %print('-dtiff','-r900',fname)
         if closeit==1
             close;

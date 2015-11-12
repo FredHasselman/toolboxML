@@ -31,7 +31,7 @@
 % Contact: me@fredhasselman.com
 
 
-function [Dsp] = Dpsd(ts,Fs,Fr,FilterRange,dz)
+function [Dsp] = Dpsd(ts,Fs,Fr,FreqRange,dz)
 
 s = warning('off', 'Dpsd:antiP');
 if isempty(dz)
@@ -42,6 +42,7 @@ end
 if isempty(Fs)
  Dsp.set.Fs   = 1;                           %Will change Fr to Hz instead of RAD when calling periodogram
 else
+ 
  Dsp.set.Fs   = Fs;
 end
 
@@ -68,26 +69,29 @@ end
 if mod(log2(n),1)~=0; ts=prep(ts,2^nextpow2(n)); end
 [Dsp.set.n,d]=size(ts);
 
-% Use n to set
+%Fitranges are a rule of thumb! See, e.g. Wijnants et al. (2013) Fractal Physiology)
+Dsp.set.low      = 1;                           %Change this to set lowest frequency on fitrange to other value
+Dsp.set.sW   = Dsp.set.low+50;                          %Wijnants method for continuous processes: fit to lowest sW frequencies
+
 if isempty(Fr)
- Dsp.set.Fr   = Dsp.set.n/2;                            %Periodogram will give Fr/2 frequencies
+ Dsp.set.Fr   = Dsp.set.n/2; %Periodogram will give Fr/2 frequencies
 else
- Dsp.set.Fr   = Fr*2;
+ if length(Fr)>1
+  Dsp.set.Fr = Fr;
+  Dsp.set.sQ25 = round((length(Dsp.set.Fr)-Dsp.set.low)*.25); %Quartile: fit to 25% lowest frequencies
+ else
+  Dsp.set.Fr = Fr*2;
+  Dsp.set.sQ25 = round((Fr-Dsp.set.low)*.25); %Quartile: fit to 25% lowest frequencies
+ end
 end
 Dsp.set.W    = tukeywin(Dsp.set.n);                     %Simple window
 
-
 % Use periodogram with simple window
-[Dsp.set.Power Dsp.set.Freq]  = periodogram(ts,Dsp.set.W,Dsp.set.Fr,Dsp.set.Fs);
+[Dsp.set.Power, Dsp.set.Freq]  = periodogram(ts,Dsp.set.W,Dsp.set.Fr,Dsp.set.Fs);
 
 Dsp.set.Power(1) = []; Dsp.set.Freq(1)  = [];
 Dsp.set.log10P   = log10(Dsp.set.Power);
 Dsp.set.log10F   = log10(Dsp.set.Freq);
-Dsp.set.low      = 1;                           %Change this to set lowest frequency on fitrange to other value
-
-%Fitranges are a rule of thumb! See, e.g. Wijnants et al. (2013) Fractal Physiology)
-Dsp.set.sQ25 = round(((Dsp.set.Fr/2)-Dsp.set.low)*.25); %Quartile: fit to 25% lowest frequencies
-Dsp.set.sW   = Dsp.set.low+50;                          %Wijnants method for continuous processes: fit to lowest sW frequencies
 
 %If the global slope is positive, maybe we are dealing with blue or violet noise
 if ~isempty(Dsp.set.pnorm)
@@ -98,10 +102,11 @@ if ~isempty(Dsp.set.pnorm)
  end
 end
 Dsp.glob.reg  = polyfit(Dsp.set.log10F(Dsp.set.low:end),Dsp.set.log10P(Dsp.set.low:end),1);
-r_trend       = corrcoef(Dsp.set.log10F(Dsp.set.low:end),Dsp.set.log10P(Dsp.set.low:end));
-Dsp.glob.r2   = r_trend(1,2)^2;
+% r_trend       = corrcoef(Dsp.set.log10F(Dsp.set.low:end),Dsp.set.log10P(Dsp.set.low:end));
+% Dsp.glob.r2   = r_trend(1,2)^2;
 Dsp.glob.line = polyval(Dsp.glob.reg,Dsp.set.log10F(Dsp.set.low:end));
 Dsp.glob.alpha= Dsp.glob.reg(1);
+
 
 if Dsp.glob.alpha > Dsp.set.antiP
  warning('Dsp:antiP','Global slope > %1.2f ...assuming anti-persitent correlations',Dsp.set.antiP)
@@ -110,7 +115,7 @@ end
 
 % Dsp.Q25
 Dsp.Q25.reg  = polyfit(Dsp.set.log10F(Dsp.set.low:Dsp.set.sQ25),Dsp.set.log10P(Dsp.set.low:Dsp.set.sQ25),1);
-r_trend      = corrcoef(Dsp.set.log10F(Dsp.set.low:Dsp.set.sQ25),Dsp.set.log10P(Dsp.set.low:Dsp.set.sQ25));
+% r_trend      = corrcoef(Dsp.set.log10F(Dsp.set.low:Dsp.set.sQ25),Dsp.set.log10P(Dsp.set.low:Dsp.set.sQ25));
 %   Dsp.Q25.r2   = r_trend(1,2)^2;
 Dsp.Q25.line = polyval(Dsp.Q25.reg,Dsp.set.log10F(Dsp.set.low:Dsp.set.sQ25));
 Dsp.Q25.alpha= Dsp.Q25.reg(1);
@@ -119,26 +124,34 @@ Dsp.Q25.FDhas= sp2fd(Dsp.Q25.alpha);
 
 % Dsp.Wijn
 Dsp.Wijn.reg  = polyfit(Dsp.set.log10F(Dsp.set.low:Dsp.set.sW),Dsp.set.log10P(Dsp.set.low:Dsp.set.sW),1);
-r_trend       = corrcoef(Dsp.set.log10F(Dsp.set.low:Dsp.set.sW),Dsp.set.log10P(Dsp.set.low:Dsp.set.sW));
-Dsp.Wijn.r2   = r_trend(1,2)^2;
+% %r_trend       = corrcoef(Dsp.set.log10F(Dsp.set.low:Dsp.set.sW),Dsp.set.log10P(Dsp.set.low:Dsp.set.sW));
+% Dsp.Wijn.r2   = r_trend(1,2)^2;
 Dsp.Wijn.line = polyval(Dsp.Wijn.reg,Dsp.set.log10F(Dsp.set.low:Dsp.set.sW));
 Dsp.Wijn.alpha= Dsp.Wijn.reg(1);
 Dsp.Wijn.FD   = (5- abs(Dsp.Wijn.alpha))/2;
 Dsp.Wijn.FDhas= sp2fd(Dsp.Wijn.alpha);
 
 % Dsp.Band
-if exist('FilterRange','var')
- Dsp.set.loF  = find(Dsp.set.Freq(:)>=min(FilterRange),1,'first');
- Dsp.set.hiF  = find(Dsp.set.Freq(:)>=max(FilterRange),1,'first');
- 
- Dsp.Band.reg  = polyfit(Dsp.set.log10F(Dsp.set.loF:Dsp.set.hiF),Dsp.set.log10P(Dsp.set.loF:Dsp.set.hiF),1);
- r_trend       = corrcoef(Dsp.set.log10F(Dsp.set.loF:Dsp.set.hiF),Dsp.set.log10P(Dsp.set.loF:Dsp.set.hiF));
- Dsp.Band.r2   = r_trend(1,2)^2;
- Dsp.Band.line = polyval(Dsp.Band.reg,Dsp.set.log10F(Dsp.set.loF:Dsp.set.hiF));
- Dsp.Band.alpha= Dsp.Band.reg(1);
- Dsp.Band.FD   = (5- abs(Dsp.Band.alpha))/2;
- Dsp.Band.FDhas= sp2fd(Dsp.Band.alpha);
- 
+if exist('FreqRange','var')
+ if length(FreqRange)>=2
+  [x, FilterRange]=histc(Dsp.set.Freq(:),FreqRange);
+   FR = unique(FilterRange(FilterRange~=0));
+   F = NaN(length(Dsp.set.Freq(:)),length(FR)-1);
+   P = NaN(length(Dsp.set.Freq(:)),length(FR)-1);
+  for b = 1:length(FR)-1
+   Dsp.Band.range(b,1:2) = [min(Dsp.set.Freq(FilterRange==FR(b))) max(Dsp.set.Freq(FilterRange==FR(b)))];
+   [Dsp.Band.line(b).reg, Dsp.Band.line(b).err] = polyfit(Dsp.set.log10F(FilterRange==b),Dsp.set.log10P(FilterRange==b),1);
+   F(FilterRange==FR(b),b) = Dsp.set.Freq(FilterRange==FR(b))';
+   P(FilterRange==FR(b),b) = polyval(Dsp.Band.line(b).reg,Dsp.set.log10F(FilterRange==b))';
+   Dsp.Band.alpha(b)= Dsp.Band.line(b).reg(1);
+   Dsp.Band.FD(b)   = (5- abs(Dsp.Band.alpha(b)))/2;
+   Dsp.Band.FDhas(b)= sp2fd(Dsp.Band.alpha(b));
+  end
+  Dsp.Band.Frq = F;
+  Dsp.Band.Pow = P;
+ else
+  warning('Dsp:FltRange','Filter range is 1 value... \n Skipping band regression')
+ end
 end
 
 if Dsp.glob.alpha > Dsp.set.antiP
@@ -148,3 +161,8 @@ end
 warning(s);
 
 end
+
+
+
+%    r_trend       = corrcoef(Dsp.set.log10F(FilterRange==FR(b)),Dsp.set.log10P(FilterRange==FR(b)));
+%    Dsp.Band(b).r2   = r_trend(1,2)^2 ;
